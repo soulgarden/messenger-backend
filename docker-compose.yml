@@ -1,0 +1,53 @@
+version: '3'
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 160.15.101.0/24
+
+services:
+  postgresql:
+    container_name: messenger_postgresql
+    image: postgres:12.5-alpine
+    hostname: postgresql.messenger.local
+    environment:
+      POSTGRES_USER: messenger
+      POSTGRES_PASSWORD: messenger
+      POSTGRES_DB: messenger
+    expose:
+      - 5432
+    networks:
+      default:
+        ipv4_address: 160.15.101.2
+
+  app:
+    container_name: messenger_app
+    build:
+      context: .
+      dockerfile: docker/go/Dockerfile
+    environment:
+      DB_USER: messenger
+      DB_NAME: messenger
+      DB_ADDR: postgresql:5432
+      DB_PASSWORD: messenger
+    expose:
+      - 8000
+    networks:
+      default:
+        ipv4_address: 160.15.101.3
+    extra_hosts:
+      - "postgresql.messenger.local:160.15.101.2"
+
+  nginx:
+    container_name: messenger_nginx
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    depends_on:
+      - app
+    networks:
+      default:
+        ipv4_address: 160.15.101.4
+    expose:
+      - "80"
